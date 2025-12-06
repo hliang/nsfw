@@ -51,7 +51,7 @@ runMain(){
     # runScheduler
     # 执行数据库迁移
     # alembic upgrade head
-    uvicorn app.main:app --workers ${WORKERS} --host 0.0.0.0 --port 6086
+    uvicorn app.main:app --workers ${WORKERS} --host 0.0.0.0 --port 6086 --log-config app/logging_config.ini
 }
 
 # 获取第一个参数，如果不存在，则执行下面的命令，如果为dev则执行另外的命令
@@ -64,7 +64,7 @@ elif [ "$ARG1" = "dev" ]; then
     # 执行数据库迁移
     # alembic upgrade head
     # runScheduler
-    uvicorn app.main:app --reload --host 0.0.0.0 --port 6086
+    uvicorn app.main:app --reload --host 0.0.0.0 --port 6086 --log-config app/logging_config.ini
 else
     echo "Unknown argument: $ARG1"
     echo "Usage: $0 [dev]"

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from .routers import router as my_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.auth import auth
+from app.middleware.timing import TimingMiddleware
 # from .model.conn import engine, Base
 # 导入模型，确保后续可以被创建
 # from .model import test
@@ -25,6 +26,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.middleware("http")(auth)  # 添加新的鉴权中间件
+app.add_middleware(TimingMiddleware)
 
 # 全局跨域中间件
 app.add_middleware(
