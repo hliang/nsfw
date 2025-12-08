@@ -2,7 +2,7 @@ from app.utils.helper import show_json
 from fastapi import Request, UploadFile
 import io
 from PIL import Image
-from app.api.check import ALLOWED_MIME, MAX_SIZE, _infer
+from app.api.url_check import ALLOWED_MIME, MAX_SIZE, _infer,_extract_middle_frame
 
 # 仅用于将 PIL 的格式名映射到标准 MIME（以实际解码结果为准）
 FORMAT_TO_MIME = {
@@ -32,15 +32,25 @@ class UploadCheckHandler:
         image = None
         try:
             image = Image.open(io.BytesIO(data))
-            fmt = getattr(image, "format", None)
+            orig_fmt = getattr(image, "format", None)
+            image = _extract_middle_frame(image)
+            # 回退获取原始格式，避免 GIF 中间帧 convert 后 format 丢失
+            info_fmt = None
+            try:
+                info_fmt = image.info.get("orig_format")
+            except Exception:
+                pass
+            fmt = getattr(image, "format", None) or getattr(image, "_orig_format", None) or info_fmt or orig_fmt
             detected_mime = {
                 "JPEG": "image/jpeg",
                 "PNG": "image/png",
                 "BMP": "image/bmp",
                 "WEBP": "image/webp",
+                "GIF": "image/gif",
             }.get(fmt or "", "")
+            # print(f"Detected image format (after={fmt}, original={orig_fmt}), MIME: {detected_mime}")
             if detected_mime not in ALLOWED_MIME:
-                return show_json(-1000, f"Unsupported file type: {detected_mime or 'unknown'}, only jpg/png/bmp/webp allowed.")
+                return show_json(-1000, f"Unsupported file type: {detected_mime or 'unknown'}, only jpg/png/bmp/webp/gif allowed.")
             result, err = _infer(image)
         except Exception:
             return show_json(-1000, "Image parsing failed.")

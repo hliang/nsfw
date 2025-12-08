@@ -15,10 +15,10 @@
 ## 特点
 
 * 纯CPU推理，适合大多数云服务器或VPS
-* 支持的图片类型：jpg/png/bmp/webp
+* 支持的图片类型：jpg/png/bmp/webp/gif
 * 支持HTTP API调用
 * 支持鉴权访问
-* 轻量级实现，资源占用较低
+* 轻量级实现，资源占用相对较低
 * 识别速度较快
 * 支持Docker私有部署
 
@@ -63,20 +63,32 @@ services:
 
 ## HTTP API
 
-### 通过URL检测
+### 传递URL检测
 
-未启用鉴权：
+GET请求方式（不使用鉴权）：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png'
 ```
 
-启用鉴权：
+GET请求方式（启用鉴权）：
 
 ```
 curl 'http://localhost:6086/api/url_check?url=https://www.imgurl.org/static/images/logo.png' \
 --header 'Authorization: Bearer your_token_here'
 ```
+
+POST请求方式：
+
+```
+curl --location --request POST 'http://localhost:6086/api/url_check' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "url":"https://www.imgurl.org/static/images/logo.png"
+}'
+```
+
+> 如果图片URL中含有特殊字符或参数，建议使用POST请求方式。
 
 ### 通过上传图片文件进行检测
 
@@ -85,6 +97,8 @@ curl --location --request POST 'http://localhost:6086/api/upload_check' \
 --header 'Authorization: Bearer xxx' \
 --form 'file=@"/Users/zhangsan/Downloads/2660b27f2e5b24ac.jpeg"'
 ```
+
+> 如果启用了鉴权，请求时请添加header头：`Authorization: Bearer your_token_here`
 
 ### 返回值
 
