@@ -331,6 +331,27 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.3);
     }
+    .url-check-button {
+      background: #00c9ff;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .url-check-button:hover {
+      background: #00a8e0;
+    }
+
+    .url-check-button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -397,6 +418,22 @@
               
             </div>
           </el-upload>
+          <div style="text-align: center; color: #888; margin: 20px 0;">
+            <span>{{ language === 'zh' ? '或' : 'OR' }}</span>
+          </div>
+          <div class="url-input-section">
+            <input
+              type="text"
+              class="custom-input"
+              :placeholder="language === 'zh' ? '输入图片URL进行检测' : 'Enter an image URL for detection'"
+              v-model="imageUrl"
+              @keyup.enter="handleUrlCheck"
+            />
+            <button class="url-check-button" @click="handleUrlCheck" :disabled="checkingUrl" style="margin-top: 10px; width: 100%;">
+              <span v-if="!checkingUrl">{{ language === 'zh' ? 'URL 检测' : 'Check URL' }}</span>
+              <span v-else>{{ language === 'zh' ? '检测中...' : 'Checking...' }}</span>
+            </button>
+          </div>
           <div class="progress-container" v-if="uploading">
             <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
           </div>
@@ -460,6 +497,8 @@
           thumbnailUrl: null,
           uploading: false,
           uploadProgress: 0,
+          imageUrl: '',
+          checkingUrl: false,
         };
       },
       mounted() {
@@ -496,6 +535,10 @@
           window.open('https://github.com/helloxz/nsfw', '_blank');
         },
         handleFileChange(file, fileList) {
+          if (this.checkingUrl) {
+            this.$message.warning(this.language === 'zh' ? 'URL检测正在进行中，请稍候' : 'URL check is in progress, please wait');
+            return;
+          }
           this.resetState();
           const imageFile = file.raw;
 
@@ -550,10 +593,52 @@
               this.result = null;
             });
         },
+        handleUrlCheck() {
+          if (this.uploading) {
+            this.$message.warning(this.language === 'zh' ? '文件上传正在进行中，请稍候' : 'File upload is in progress, please wait');
+            return;
+          }
+          if (!this.imageUrl) {
+            this.$message.error(this.language === 'zh' ? '请输入图片URL' : 'Please enter an image URL');
+            return;
+          }
+
+          this.resetState();
+          this.checkingUrl = true;
+          this.thumbnailUrl = this.imageUrl; // Show the image from URL as thumbnail
+
+          const config = {
+            headers: {}
+          };
+
+          if (this.token) {
+            config.headers['Authorization'] = `Bearer ${this.token}`;
+          }
+
+          axios.post('/api/url_check', { url: this.imageUrl }, config)
+                  .then(response => {
+                    this.checkingUrl = false;
+                    if (response.data.code === 200) {
+                      this.result = response.data.data;
+                      this.error = null;
+                    } else {
+                      this.error = response.data.msg || (this.language === 'zh' ? '请求失败' : 'Request failed');
+                      this.result = null;
+                    }
+                  })
+                  .catch(error => {
+                    this.checkingUrl = false;
+                    console.error(error);
+                    this.error = error.response?.data?.msg || error.message || (this.language === 'zh' ? '网络错误或服务不可用' : 'Network error or service unavailable');
+                    this.result = null;
+                  });
+        },
         resetState() {
           this.result = null;
           this.error = null;
           this.thumbnailUrl = null;
+          this.uploading = false;
+          this.uploadProgress = 0;
         }
       }
     });
